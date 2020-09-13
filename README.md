@@ -1,2 +1,1 @@
-# rust_graphql_example
-Explores building a GraphQL server using Rust
+# Building a GraphQL server with Rust
