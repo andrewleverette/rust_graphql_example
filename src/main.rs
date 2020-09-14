@@ -3,6 +3,7 @@
 use juniper_rocket;
 use rocket::{response::content, State};
 
+mod models;
 mod schema;
 
 use schema::*;
