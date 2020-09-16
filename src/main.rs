@@ -7,20 +7,14 @@ mod schema;
 
 use schema::*;
 
+/// The GraphiQL Interface
 #[rocket::get("/")]
 fn graphiql() -> content::Html<String> {
     juniper_rocket::graphiql_source("/graphql")
 }
 
-#[rocket::get("/grapqhl?<request>")]
-fn get_graphql_handler(
-    context: State<()>,
-    request: juniper_rocket::GraphQLRequest,
-    schema: State<Schema>,
-) -> juniper_rocket::GraphQLResponse {
-    request.execute(&schema, &context)
-}
-
+/// Handles GraphQL queries where
+/// the query is part of the request body
 #[rocket::post("/graphql", data = "<request>")]
 fn post_graphql_handler(
     context: State<()>,
@@ -36,7 +30,7 @@ fn main() {
         .manage(Schema::new(Query, Mutation::new()))
         .mount(
             "/",
-            rocket::routes![graphiql, get_graphql_handler, post_graphql_handler],
+            rocket::routes![graphiql, post_graphql_handler],
         )
         .launch();
 }
