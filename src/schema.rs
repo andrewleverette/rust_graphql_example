@@ -1,6 +1,6 @@
 use juniper::{self, EmptyMutation, RootNode};
 
-use crate::models::clients::*;
+use crate::models::*;
 
 pub struct Query;
 
