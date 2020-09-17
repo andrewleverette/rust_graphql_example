@@ -28,9 +28,6 @@ fn main() {
     rocket::ignite()
         .manage(())
         .manage(Schema::new(Query, Mutation::new()))
-        .mount(
-            "/",
-            rocket::routes![graphiql, post_graphql_handler],
-        )
+        .mount("/", rocket::routes![graphiql, post_graphql_handler])
         .launch();
 }
