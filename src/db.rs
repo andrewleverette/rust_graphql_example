@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::error::Error;
 
 use csv;
@@ -6,7 +5,7 @@ use csv;
 use crate::models::*;
 
 pub struct DataContext {
-    pub clients: HashMap<usize, Client>,
+    pub clients: Vec<Client>,
 }
 
 impl DataContext {
@@ -17,18 +16,18 @@ impl DataContext {
     }
 }
 
-fn read_from_file<T>(path: &str) -> Result<HashMap<usize, T>, Box<dyn Error>>
+fn read_from_file<T>(path: &str) -> Result<Vec<T>, Box<dyn Error>>
 where
     T: serde::de::DeserializeOwned,
 {
     let mut reader = csv::Reader::from_path(path)?;
 
-    let mut results = HashMap::new();
+    let mut results = Vec::new();
 
-    for (idx, result) in reader.deserialize().enumerate() {
+    for result in reader.deserialize() {
         let record: T = result?;
 
-        results.insert(idx, record);
+        results.push(record);
     }
 
     Ok(results)

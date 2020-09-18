@@ -14,7 +14,7 @@ impl Query {
     }
 
     fn clients(ctx: &DataContext) -> Vec<&Client> {
-        ctx.clients.values().collect()
+        ctx.clients.iter().collect()
     }
 }
 
