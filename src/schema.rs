@@ -13,7 +13,7 @@ impl Query {
         "Hello, world!"
     }
 
-    fn clients(&self, ctx: &DataContext) -> Vec<&Client> {
+    fn clients(ctx: &DataContext) -> Vec<&Client> {
         ctx.clients.values().collect()
     }
 }
