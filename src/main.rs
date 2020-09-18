@@ -3,9 +3,11 @@
 use juniper_rocket;
 use rocket::{response::content, State};
 
+mod db;
 mod models;
 mod schema;
 
+use db::DataContext;
 use schema::*;
 
 #[rocket::get("/")]
@@ -15,7 +17,7 @@ fn graphiql() -> content::Html<String> {
 
 #[rocket::get("/grapqhl?<request>")]
 fn get_graphql_handler(
-    context: State<()>,
+    context: State<DataContext>,
     request: juniper_rocket::GraphQLRequest,
     schema: State<Schema>,
 ) -> juniper_rocket::GraphQLResponse {
@@ -24,7 +26,7 @@ fn get_graphql_handler(
 
 #[rocket::post("/graphql", data = "<request>")]
 fn post_graphql_handler(
-    context: State<()>,
+    context: State<DataContext>,
     request: juniper_rocket::GraphQLRequest,
     schema: State<Schema>,
 ) -> juniper_rocket::GraphQLResponse {
@@ -33,7 +35,7 @@ fn post_graphql_handler(
 
 fn main() {
     rocket::ignite()
-        .manage(())
+        .manage(DataContext::init().unwrap())
         .manage(Schema::new(Query, Mutation::new()))
         .mount(
             "/",

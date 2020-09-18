@@ -1,4 +1,7 @@
-#[derive(juniper::GraphQLObject)]
+use serde::Deserialize;
+
+#[derive(Clone, Deserialize, juniper::GraphQLObject)]
+#[serde(rename_all = "PascalCase")]
 pub struct Client {
     pub client_id: String,
     pub company_name: String,

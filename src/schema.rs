@@ -1,27 +1,23 @@
-use juniper::{self, EmptyMutation, RootNode};
+use juniper::{self, Context, EmptyMutation, RootNode};
 
-use crate::models::clients::*;
+use crate::db::DataContext;
+use crate::models::*;
+
+impl Context for DataContext {}
 
 pub struct Query;
 
-#[juniper::object]
+#[juniper::object(Context = DataContext)]
 impl Query {
     fn hello_world() -> &str {
         "Hello, world!"
     }
 
-    fn client() -> Client {
-        Client {
-            client_id: "07-5583691".to_owned(),
-            company_name: "Rutherford, Buckridge and Gibson".to_owned(),
-            contact_name: "Xylia Froome".to_owned(),
-            contact_title: "Legal Assistant".to_owned(),
-            phone: "931-520-7757".to_owned(),
-            email: "xfroome0@mac.com".to_owned(),
-        }
+    fn clients(&self, ctx: &DataContext) -> Vec<&Client> {
+        ctx.clients.values().collect()
     }
 }
 
-pub type Mutation = EmptyMutation<()>;
+pub type Mutation = EmptyMutation<DataContext>;
 
 pub type Schema = RootNode<'static, Query, Mutation>;
