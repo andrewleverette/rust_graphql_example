@@ -5,9 +5,9 @@ use csv;
 use crate::models::*;
 
 pub struct DataContext {
-    pub clients: Vec<Client>,
-    pub invoices: Vec<Invoice>,
-    pub invoice_items: Vec<InvoiceItems>,
+    pub clients: Vec<ClientModel>,
+    pub invoices: Vec<InvoiceModel>,
+    pub invoice_items: Vec<InvoiceItemsModel>,
 }
 
 impl DataContext {

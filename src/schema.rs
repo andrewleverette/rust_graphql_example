@@ -1,76 +1,25 @@
-use chrono::NaiveDate;
+use std::collections::HashMap;
+
 use juniper::{self, Context, EmptyMutation, RootNode};
 
 use crate::db::DataContext;
-use crate::models::*;
+use crate::models;
 
 impl Context for DataContext {}
 
+#[derive(juniper::GraphQLObject)]
+struct Client {
+    client: models::ClientModel,
+    invoices: Vec<Invoice>
+}
+
+#[derive(Clone, juniper::GraphQLObject)]
+struct Invoice {
+    invoice: models::InvoiceModel,
+    invoice_items: Vec<models::InvoiceItemsModel>
+}
+
 pub struct Query;
-
-#[juniper::object(Context = DataContext)]
-impl Client {
-    fn client_id(&self) -> &str {
-        &self.client_id
-    }
-
-    fn company_name(&self) -> &str {
-        &self.company_name
-    }
-
-    fn contact_name(&self) -> &str {
-        &self.contact_name
-    }
-
-    fn contact_title(&self) -> &str {
-        &self.contact_title
-    }
-
-    fn phone(&self) -> &str {
-        &self.phone
-    }
-
-    fn email(&self) -> &str {
-        &self.email
-    }
-
-    fn invoices(&self, ctx: &DataContext) -> Vec<&Invoice> {
-        ctx.invoices
-            .iter()
-            .filter(|inv| self.client_id == inv.client_id)
-            .collect()
-    }
-}
-
-#[juniper::object(Context = DataContext)]
-impl Invoice {    
-    fn invoice_id(&self) -> i32 {
-        self.invoice_id
-    }
-
-    fn invoice_number(&self) -> &str {
-        &self.invoice_number
-    }
-
-    fn client_id(&self) -> &str {
-        &self.client_id
-    }
-
-    fn invoice_date(&self) -> NaiveDate {
-        self.invoice_date
-    }
-
-    fn due_date(&self) -> NaiveDate {
-        self.due_date
-    }
-
-    fn invoice_items(&self, ctx: &DataContext) -> Vec<&InvoiceItems> {
-        ctx.invoice_items
-            .iter()
-            .filter(|dtl| self.invoice_id == dtl.invoice_id)
-            .collect()
-    }
-}
 
 #[juniper::object(Context = DataContext)]
 impl Query {
@@ -78,8 +27,56 @@ impl Query {
         "Hello, world!"
     }
 
-    fn clients(ctx: &DataContext) -> Vec<&Client> {
-        ctx.clients.iter().collect()
+    fn clients(ctx: &DataContext) -> Vec<Client> {
+        let mut invoice_item_map: HashMap<i32, Vec<models::InvoiceItemsModel>> = HashMap::new();
+
+        for item in &ctx.invoice_items {
+            match invoice_item_map.get_mut(&item.invoice_id) {
+                Some(items) => items.push(item.clone()),
+                None => {
+                    invoice_item_map.insert(item.invoice_id, vec![item.clone()]);
+                }
+            }
+        }
+
+        let mut invoice_map: HashMap<String, Vec<Invoice>> = HashMap::new();
+
+        for inv in &ctx.invoices {
+            let invoice_items = match invoice_item_map.get(&inv.invoice_id) {
+                Some(items) => items.clone(),
+                None => Vec::new()
+            };
+
+            let invoice = Invoice {
+                invoice: inv.clone(),
+                invoice_items
+            };
+
+            match invoice_map.get_mut(&inv.client_id) {
+                Some(invoices) => invoices.push(invoice),
+                None => {
+                    invoice_map.insert(inv.client_id.to_owned(), vec![invoice]);
+                }
+            }
+        }
+
+        let mut clients = Vec::new();
+
+        for client in &ctx.clients {
+            let invoices = match invoice_map.get(&client.client_id) {
+                Some(invoices) => invoices.clone(),
+                None => Vec::new()
+            };
+
+            let client = Client {
+                client: client.clone(),
+                invoices
+            };
+
+            clients.push(client);
+        }
+
+        clients
     }
 }
 
