@@ -28,6 +28,7 @@ fn read_from_file<T>(path: &str) -> Result<Vec<T>, Box<dyn Error>>
 where
     T: serde::de::DeserializeOwned,
 {
+    println!("{}", path);
     let mut reader = csv::Reader::from_path(path)?;
 
     let mut results = Vec::new();

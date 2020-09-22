@@ -43,7 +43,7 @@ impl Client {
 }
 
 #[juniper::object(Context = DataContext)]
-impl Invoice {
+impl Invoice {    
     fn invoice_id(&self) -> i32 {
         self.invoice_id
     }
