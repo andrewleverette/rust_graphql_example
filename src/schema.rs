@@ -84,24 +84,41 @@ impl Query {
     }
 
     /// Client resource to query clients and related invoices
-    fn clients(ctx: &DataContext) -> Vec<Client> {
+    fn clients(id: Option<String>, ctx: &DataContext) -> Vec<Client> {
         let mut client_map = HashMap::new();
         let mut invoice_map = HashMap::new();
 
-        for client_model in &ctx.clients {
-            let client = Client {
-                client_id: client_model.client_id.to_owned(),
-                company_name: client_model.company_name.to_owned(),
-                contact_name: client_model.contact_name.to_owned(),
-                contact_title: client_model.contact_title.to_owned(),
-                email: client_model.email.to_owned(),
-                phone: client_model.phone.to_owned(),
-                invoices: Vec::new(),
-            };
+        if let Some(id) = id {
+            if let Some(client_model) = ctx.clients.iter().find(|client| client.client_id == id) {
+                let client = Client {
+                    client_id: client_model.client_id.to_owned(),
+                    company_name: client_model.company_name.to_owned(),
+                    contact_name: client_model.contact_name.to_owned(),
+                    contact_title: client_model.contact_title.to_owned(),
+                    email: client_model.email.to_owned(),
+                    phone: client_model.phone.to_owned(),
+                    invoices: Vec::new(),
+                };
+    
+                client_map.insert(client.client_id.to_owned(), client);
+            }
+        } else {
+            for client_model in &ctx.clients {
+                let client = Client {
+                    client_id: client_model.client_id.to_owned(),
+                    company_name: client_model.company_name.to_owned(),
+                    contact_name: client_model.contact_name.to_owned(),
+                    contact_title: client_model.contact_title.to_owned(),
+                    email: client_model.email.to_owned(),
+                    phone: client_model.phone.to_owned(),
+                    invoices: Vec::new(),
+                };
+    
+                client_map.insert(client.client_id.to_owned(), client);
+            }       
+    
+        }
 
-            client_map.insert(client.client_id.to_owned(), client);
-        }       
-        
         for inv_model in &ctx.invoices {
             if client_map.contains_key(&inv_model.client_id) {
                 let invoice = Invoice {
@@ -141,20 +158,35 @@ impl Query {
     }
 
     /// Invoice resource to query invoices
-    fn invoices(ctx: &DataContext) -> Vec<Invoice> {
+    fn invoices(id: Option<i32>, ctx: &DataContext) -> Vec<Invoice> {
         let mut invoice_map = HashMap::new();
 
-        for inv_model in &ctx.invoices {
-            let invoice = Invoice {
-                invoice_id: inv_model.invoice_id,
-                invoice_number: inv_model.invoice_number.to_owned(),
-                client_id: inv_model.client_id.to_owned(),
-                invoice_date: inv_model.invoice_date,
-                due_date: inv_model.due_date,
-                invoice_items: Vec::new(),
-            };
-
-            invoice_map.insert(invoice.invoice_id, invoice);
+        if let Some(id) = id {
+            if let Some(inv_model) = ctx.invoices.iter().find(|inv| inv.invoice_id == id) {
+                let invoice = Invoice {
+                    invoice_id: inv_model.invoice_id,
+                    invoice_number: inv_model.invoice_number.to_owned(),
+                    client_id: inv_model.client_id.to_owned(),
+                    invoice_date: inv_model.invoice_date,
+                    due_date: inv_model.due_date,
+                    invoice_items: Vec::new(),
+                };
+    
+                invoice_map.insert(invoice.invoice_id, invoice);    
+            }
+        } else {
+            for inv_model in &ctx.invoices {
+                let invoice = Invoice {
+                    invoice_id: inv_model.invoice_id,
+                    invoice_number: inv_model.invoice_number.to_owned(),
+                    client_id: inv_model.client_id.to_owned(),
+                    invoice_date: inv_model.invoice_date,
+                    due_date: inv_model.due_date,
+                    invoice_items: Vec::new(),
+                };
+    
+                invoice_map.insert(invoice.invoice_id, invoice);
+            }    
         }
 
         for inv_item_model in &ctx.invoice_items {
