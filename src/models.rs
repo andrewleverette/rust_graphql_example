@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use serde::Deserialize;
 
-#[derive(Clone, Deserialize, juniper::GraphQLObject)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct ClientModel {
     pub client_id: String,
@@ -12,7 +12,7 @@ pub struct ClientModel {
     pub email: String,
 }
 
-#[derive(Clone, Deserialize, juniper::GraphQLObject)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct InvoiceModel {
     pub invoice_id: i32,
@@ -22,7 +22,7 @@ pub struct InvoiceModel {
     pub due_date: NaiveDate,
 }
 
-#[derive(Clone, Deserialize, juniper::GraphQLObject)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct InvoiceItemsModel {
     pub item_id: i32,

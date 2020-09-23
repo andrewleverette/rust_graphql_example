@@ -1,5 +1,7 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
+use std::time::Instant;
+
 use juniper_rocket;
 use rocket::{response::content, State};
 
@@ -30,7 +32,10 @@ fn post_graphql_handler(
     request: juniper_rocket::GraphQLRequest,
     schema: State<Schema>,
 ) -> juniper_rocket::GraphQLResponse {
-    request.execute(&schema, &context)
+    let start = Instant::now();
+    let response = request.execute(&schema, &context);
+    println!("Request took {:?}", start.elapsed());
+    response
 }
 
 fn main() {
