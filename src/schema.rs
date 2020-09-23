@@ -14,7 +14,7 @@ impl Query {
     fn hello_world() -> &str {
         "Hello, world!"
     }
-    /// Client resource to query clients and related invoices
+    /// Client resource to query clients
     fn clients(ctx: &DataContext) -> Vec<&Client> {
         ctx.clients.iter().collect()
     }
