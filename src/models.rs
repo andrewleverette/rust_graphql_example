@@ -24,6 +24,7 @@ pub struct Invoice {
 
 #[derive(Clone, Deserialize, juniper::GraphQLObject)]
 #[serde(rename_all = "PascalCase")]
+/// Information about an invoice item for a specific invoice
 pub struct InvoiceItems {
     pub item_id: i32,
     pub invoice_id: i32,

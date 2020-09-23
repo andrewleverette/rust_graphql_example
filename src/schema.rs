@@ -9,6 +9,7 @@ impl Context for DataContext {}
 pub struct Query;
 
 #[juniper::object(Context = DataContext)]
+/// Information about a client
 impl Client {
     fn client_id(&self) -> &str {
         &self.client_id
@@ -43,6 +44,7 @@ impl Client {
 }
 
 #[juniper::object(Context = DataContext)]
+/// Information about an invoice for a specific client
 impl Invoice {    
     fn invoice_id(&self) -> i32 {
         self.invoice_id
