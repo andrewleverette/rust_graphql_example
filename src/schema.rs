@@ -5,11 +5,14 @@ use crate::models::*;
 pub struct Query;
 
 #[juniper::object]
+/// An example GraphQL Schema built with Rust
 impl Query {
+    /// Simple "Hello, world!" query
     fn hello_world() -> &str {
         "Hello, world!"
     }
 
+     /// Client resource to query clients
     fn client() -> Client {
         Client {
             client_id: "07-5583691".to_owned(),
