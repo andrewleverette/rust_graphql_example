@@ -41,7 +41,7 @@ fn post_graphql_handler(
 fn main() {
     rocket::ignite()
         .manage(DataContext::init().unwrap())
-        .manage(Schema::new(Query, Mutation::new()))
+        .manage(Schema::new(Query, Mutation))
         .mount(
             "/",
             rocket::routes![graphiql, get_graphql_handler, post_graphql_handler],

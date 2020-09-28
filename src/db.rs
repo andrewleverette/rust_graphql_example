@@ -1,3 +1,4 @@
+use std::sync::{Arc, Mutex};
 use std::error::Error;
 
 use csv;
@@ -5,7 +6,7 @@ use csv;
 use crate::models::*;
 
 pub struct DataContext {
-    pub clients: Vec<ClientModel>,
+    pub clients: Arc<Mutex<Vec<ClientModel>>>,
     pub invoices: Vec<InvoiceModel>,
     pub invoice_items: Vec<InvoiceItemsModel>,
 }
@@ -17,7 +18,7 @@ impl DataContext {
         let invoice_items = read_from_file("./data/InvoiceItems.csv")?;
 
         Ok(DataContext {
-            clients,
+            clients: Arc::new(Mutex::new(clients)),
             invoices,
             invoice_items,
         })

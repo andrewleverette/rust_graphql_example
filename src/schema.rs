@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::NaiveDate;
-use juniper::{self, Context, EmptyMutation, RootNode};
+use juniper::{self, Context, RootNode};
 
 use crate::db::DataContext;
 
@@ -88,14 +88,16 @@ impl Query {
         let mut client_map = HashMap::new();
         let mut invoice_map = HashMap::new();
 
+        let client_list = ctx.clients.lock().unwrap();
+
         let (first, offset) = match (first, offset) {
             (Some(f), Some(o)) => (f as usize, o as usize),
             (Some(f), None) => (f as usize, 0),
-            (None, Some(o)) => (ctx.clients.len() - o as usize, o as usize),
-            (None, None) => (ctx.clients.len(), 0),
+            (None, Some(o)) => (client_list.len() - o as usize, o as usize),
+            (None, None) => (client_list.len(), 0),
         };
 
-        for client_model in ctx.clients.iter().skip(offset).take(first) {
+        for client_model in client_list.iter().skip(offset).take(first) {
             let client = Client {
                 client_id: client_model.client_id.to_owned(),
                 company_name: client_model.company_name.to_owned(),
@@ -149,8 +151,10 @@ impl Query {
 
     /// Client resource to get a single client and related invoices
     fn get_client(id: String, ctx: &DataContext) -> Option<Client> {
+        let client_list = ctx.clients.lock().unwrap();
+
         let mut client =
-            if let Some(client_model) = ctx.clients.iter().find(|client| client.client_id == id) {
+            if let Some(client_model) = client_list.iter().find(|client| client.client_id == id) {
                 Client {
                     client_id: client_model.client_id.to_owned(),
                     company_name: client_model.company_name.to_owned(),
@@ -205,6 +209,42 @@ impl Query {
     }
 }
 
-pub type Mutation = EmptyMutation<DataContext>;
+pub struct Mutation;
+
+#[juniper::object(Context = DataContext)]
+impl Mutation {
+
+    /// Adds a new client to the client list
+    fn add_client(
+        ctx: &DataContext,
+        id: String,
+        company_name: String,
+        contact_name: String,
+        title: String,
+        phone: String,
+        email: String,
+    ) -> Client {
+        let client = Client {
+            client_id: id.to_owned(),
+            company_name: company_name.to_owned(),
+            contact_name: contact_name.to_owned(),
+            contact_title: title.to_owned(),
+            phone: phone.to_owned(),
+            email: email.to_owned(),
+            invoices: Vec::new(),
+        };
+
+        ctx.clients.lock().unwrap().push(crate::models::ClientModel {
+            client_id: id.to_owned(),
+            company_name: company_name.to_owned(),
+            contact_name: contact_name.to_owned(),
+            contact_title: title.to_owned(),
+            phone: phone.to_owned(),
+            email: email.to_owned(),
+        });
+
+        client
+    }
+}
 
 pub type Schema = RootNode<'static, Query, Mutation>;
