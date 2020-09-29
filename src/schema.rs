@@ -272,14 +272,14 @@ impl Mutation {
         {
             let mut invoice_list = ctx.invoices.lock().unwrap();
 
-            let next_id = invoice_list
+            let invoice_id = invoice_list
                 .iter()
                 .max_by(|a, b| a.invoice_id.cmp(&b.invoice_id))
                 .unwrap()
                 .invoice_id
                 + 1;
 
-            let invoice_number = format!("INV{}", next_id);
+            let invoice_number = format!("INV{}", invoice_id);
 
             let current_month = Local::today().month();
             let current_year = Local::today().year();
@@ -291,7 +291,7 @@ impl Mutation {
                 NaiveDate::from_ymd(current_year, current_month + 2, 1) - Duration::days(1);
 
             let invoice = Invoice {
-                invoice_id: next_id,
+                invoice_id,
                 invoice_number: invoice_number.to_owned(),
                 client_id: client_id.to_owned(),
                 invoice_date,
@@ -300,7 +300,7 @@ impl Mutation {
             };
 
             invoice_list.push(crate::models::InvoiceModel {
-                invoice_id: next_id,
+                invoice_id,
                 invoice_number: invoice_number.to_owned(),
                 client_id: client_id.to_owned(),
                 invoice_date,
