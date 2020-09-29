@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::NaiveDate;
+use chrono::{Datelike, Duration, Local, NaiveDate};
 use juniper::{self, Context, RootNode};
 
 use crate::db::DataContext;
@@ -111,7 +111,9 @@ impl Query {
             client_map.insert(client.client_id.to_owned(), client);
         }
 
-        for inv_model in &ctx.invoices {
+        let invoice_list = ctx.invoices.lock().unwrap();
+
+        for inv_model in invoice_list.iter() {
             if client_map.contains_key(&inv_model.client_id) {
                 let invoice = Invoice {
                     invoice_id: inv_model.invoice_id,
@@ -126,7 +128,9 @@ impl Query {
             }
         }
 
-        for inv_item_model in &ctx.invoice_items {
+        let invoice_items_list = ctx.invoice_items.lock().unwrap();
+
+        for inv_item_model in invoice_items_list.iter() {
             if let Some(inv) = invoice_map.get_mut(&inv_item_model.invoice_id) {
                 let invoice_item = InvoiceItem {
                     item_id: inv_item_model.item_id,
@@ -152,6 +156,8 @@ impl Query {
     /// Client resource to get a single client and related invoices
     fn get_client(id: String, ctx: &DataContext) -> Option<Client> {
         let client_list = ctx.clients.lock().unwrap();
+        let invoice_list = ctx.invoices.lock().unwrap();
+        let invoice_items_list = ctx.invoice_items.lock().unwrap();
 
         let mut client =
             if let Some(client_model) = client_list.iter().find(|client| client.client_id == id) {
@@ -170,26 +176,23 @@ impl Query {
 
         let mut invoice_map = HashMap::new();
 
-        for inv_model in ctx
-            .invoices
+        for inv_model in invoice_list
             .iter()
             .filter(|inv| inv.client_id == client.client_id)
         {
-            if client.client_id == inv_model.client_id {
-                let invoice = Invoice {
-                    invoice_id: inv_model.invoice_id,
-                    invoice_number: inv_model.invoice_number.to_owned(),
-                    client_id: inv_model.client_id.to_owned(),
-                    invoice_date: inv_model.invoice_date,
-                    due_date: inv_model.due_date,
-                    invoice_items: Vec::new(),
-                };
+            let invoice = Invoice {
+                invoice_id: inv_model.invoice_id,
+                invoice_number: inv_model.invoice_number.to_owned(),
+                client_id: inv_model.client_id.to_owned(),
+                invoice_date: inv_model.invoice_date,
+                due_date: inv_model.due_date,
+                invoice_items: Vec::new(),
+            };
 
-                invoice_map.insert(invoice.invoice_id, invoice);
-            }
+            invoice_map.insert(invoice.invoice_id, invoice);
         }
 
-        for inv_item_model in &ctx.invoice_items {
+        for inv_item_model in invoice_items_list.iter() {
             if let Some(inv) = invoice_map.get_mut(&inv_item_model.invoice_id) {
                 let invoice_item = InvoiceItem {
                     item_id: inv_item_model.item_id,
@@ -209,41 +212,145 @@ impl Query {
     }
 }
 
+#[derive(juniper::GraphQLInputObject)]
+struct NewClient {
+    client_id: String,
+    company_name: String,
+    contact_name: String,
+    contact_title: String,
+    phone: String,
+    email: String,
+}
+
+#[derive(juniper::GraphQLInputObject)]
+struct NewInvoiceItem {
+    product_id: i32,
+    description: String,
+    price: f64,
+}
+
 pub struct Mutation;
 
 #[juniper::object(Context = DataContext)]
 impl Mutation {
-
     /// Adds a new client to the client list
-    fn add_client(
-        ctx: &DataContext,
-        id: String,
-        company_name: String,
-        contact_name: String,
-        title: String,
-        phone: String,
-        email: String,
-    ) -> Client {
+    fn add_client(new_client: NewClient, ctx: &DataContext) -> Client {
+        //  Create GraphQL Client type to return
         let client = Client {
-            client_id: id.to_owned(),
-            company_name: company_name.to_owned(),
-            contact_name: contact_name.to_owned(),
-            contact_title: title.to_owned(),
-            phone: phone.to_owned(),
-            email: email.to_owned(),
+            client_id: new_client.client_id.to_owned(),
+            company_name: new_client.company_name.to_owned(),
+            contact_name: new_client.contact_name.to_owned(),
+            contact_title: new_client.contact_title.to_owned(),
+            phone: new_client.phone.to_owned(),
+            email: new_client.email.to_owned(),
             invoices: Vec::new(),
         };
 
-        ctx.clients.lock().unwrap().push(crate::models::ClientModel {
-            client_id: id.to_owned(),
-            company_name: company_name.to_owned(),
-            contact_name: contact_name.to_owned(),
-            contact_title: title.to_owned(),
-            phone: phone.to_owned(),
-            email: email.to_owned(),
-        });
+        // Insert new client into data store
+        ctx.clients
+            .lock()
+            .unwrap()
+            .push(crate::models::ClientModel {
+                client_id: new_client.client_id.to_owned(),
+                company_name: new_client.company_name.to_owned(),
+                contact_name: new_client.contact_name.to_owned(),
+                contact_title: new_client.contact_title.to_owned(),
+                phone: new_client.phone.to_owned(),
+                email: new_client.email.to_owned(),
+            });
 
         client
+    }
+
+    /// Adds new invoice for an existing client
+    fn add_invoice(client_id: String, ctx: &DataContext) -> Option<Invoice> {
+        let client_list = ctx.clients.lock().unwrap();
+
+        if let Some(client) = client_list
+            .iter()
+            .find(|client| client.client_id == client_id)
+        {
+            let mut invoice_list = ctx.invoices.lock().unwrap();
+
+            let next_id = invoice_list
+                .iter()
+                .max_by(|a, b| a.invoice_id.cmp(&b.invoice_id))
+                .unwrap()
+                .invoice_id
+                + 1;
+
+            let invoice_number = format!("INV{}", next_id);
+
+            let current_month = Local::today().month();
+            let current_year = Local::today().year();
+
+            let invoice_date =
+                NaiveDate::from_ymd(current_year, current_month + 1, 1) - Duration::days(1);
+
+            let due_date =
+                NaiveDate::from_ymd(current_year, current_month + 2, 1) - Duration::days(1);
+
+            let invoice = Invoice {
+                invoice_id: next_id,
+                invoice_number: invoice_number.to_owned(),
+                client_id: client_id.to_owned(),
+                invoice_date,
+                due_date,
+                invoice_items: Vec::new(),
+            };
+
+            invoice_list.push(crate::models::InvoiceModel {
+                invoice_id: next_id,
+                invoice_number: invoice_number.to_owned(),
+                client_id: client_id.to_owned(),
+                invoice_date,
+                due_date,
+            });
+
+            return Some(invoice);
+        }
+
+        None
+    }
+
+    /// Adds a new invoice item to an existing invoice
+    fn add_invoice_item(
+        invoice_id: i32,
+        new_invoice_item: NewInvoiceItem,
+        ctx: &DataContext,
+    ) -> Option<InvoiceItem> {
+        let mut invoice_list = ctx.invoices.lock().unwrap();
+
+        if let Some(invoice) = invoice_list.iter().find(|inv| inv.invoice_id == invoice_id) {
+            let mut invoice_items_list = ctx.invoice_items.lock().unwrap();
+
+            let item_id = invoice_items_list
+                .iter()
+                .max_by(|a, b| a.item_id.cmp(&b.item_id))
+                .unwrap()
+                .item_id
+                + 1;
+
+            let invoice_item = InvoiceItem {
+                item_id,
+                invoice_id,
+                product_id: new_invoice_item.product_id,
+                description: new_invoice_item.description.to_owned(),
+                price: new_invoice_item.price,
+            };
+
+            invoice_items_list.push(crate::models::InvoiceItemsModel {
+                item_id,
+                invoice_id,
+                product_id: new_invoice_item.product_id,
+                description: new_invoice_item.description.to_owned(),
+                price: new_invoice_item.price,
+            });
+
+            return Some(invoice_item);
+        }
+
+        None
     }
 }
 

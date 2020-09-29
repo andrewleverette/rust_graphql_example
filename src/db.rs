@@ -1,5 +1,5 @@
-use std::sync::{Arc, Mutex};
 use std::error::Error;
+use std::sync::{Arc, Mutex};
 
 use csv;
 
@@ -7,8 +7,8 @@ use crate::models::*;
 
 pub struct DataContext {
     pub clients: Arc<Mutex<Vec<ClientModel>>>,
-    pub invoices: Vec<InvoiceModel>,
-    pub invoice_items: Vec<InvoiceItemsModel>,
+    pub invoices: Arc<Mutex<Vec<InvoiceModel>>>,
+    pub invoice_items: Arc<Mutex<Vec<InvoiceItemsModel>>>,
 }
 
 impl DataContext {
@@ -19,8 +19,8 @@ impl DataContext {
 
         Ok(DataContext {
             clients: Arc::new(Mutex::new(clients)),
-            invoices,
-            invoice_items,
+            invoices: Arc::new(Mutex::new(invoices)),
+            invoice_items: Arc::new(Mutex::new(invoice_items)),
         })
     }
 }
